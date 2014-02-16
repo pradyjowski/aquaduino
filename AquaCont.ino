@@ -21,6 +21,12 @@ byte flag_last=0;
 volatile boolean light = true;
 boolean light_last = true;
 
+//sample calibration
+unsigned int phL = 120;
+unsigned int phH = 600;
+int phLv=4;
+int phHv=8;
+
 // Setup a oneWire instance to communicate with any OneWire devices on Pin8
 OneWire oneWire(8);
 
