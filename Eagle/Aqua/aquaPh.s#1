@@ -7259,7 +7259,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <wire x1="50.8" y1="86.36" x2="58.42" y2="86.36" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="VCC" class="0">
+<net name="+5V" class="0">
 <segment>
 <pinref part="IC1" gate="A" pin="V+"/>
 <pinref part="P+2" gate="1" pin="+5V"/>

@@ -18176,9 +18176,10 @@ Various common sizes : AA, AAA, 20mm coin cell and 12mm coin cell.&lt;br&gt;
 <wire x1="187.96" y1="96.52" x2="187.96" y2="106.68" width="0.1524" layer="91"/>
 <junction x="187.96" y="106.68"/>
 <pinref part="IC5" gate="G$1" pin="IN"/>
-<wire x1="68.58" y1="12.7" x2="129.54" y2="12.7" width="0.1524" layer="91"/>
+<wire x1="68.58" y1="12.7" x2="78.74" y2="12.7" width="0.1524" layer="91"/>
 <junction x="68.58" y="12.7"/>
 <pinref part="R1" gate="G$1" pin="1"/>
+<wire x1="78.74" y1="12.7" x2="129.54" y2="12.7" width="0.1524" layer="91"/>
 <wire x1="129.54" y1="12.7" x2="132.08" y2="12.7" width="0.1524" layer="91"/>
 <wire x1="129.54" y1="20.32" x2="129.54" y2="12.7" width="0.1524" layer="91"/>
 <pinref part="R2" gate="G$1" pin="2"/>
@@ -18230,6 +18231,10 @@ Various common sizes : AA, AAA, 20mm coin cell and 12mm coin cell.&lt;br&gt;
 <wire x1="149.86" y1="96.52" x2="149.86" y2="106.68" width="0.1524" layer="91"/>
 <junction x="149.86" y="106.68"/>
 <pinref part="C7" gate="G$1" pin="+"/>
+<pinref part="ISP1" gate="G$1" pin="VCC"/>
+<wire x1="91.44" y1="-7.62" x2="78.74" y2="-7.62" width="0.1524" layer="91"/>
+<wire x1="78.74" y1="-7.62" x2="78.74" y2="12.7" width="0.1524" layer="91"/>
+<junction x="78.74" y="12.7"/>
 </segment>
 </net>
 <net name="N$13" class="0">
@@ -18640,8 +18645,7 @@ Various common sizes : AA, AAA, 20mm coin cell and 12mm coin cell.&lt;br&gt;
 <wire x1="177.8" y1="5.08" x2="154.94" y2="5.08" width="0.1524" layer="91"/>
 <wire x1="154.94" y1="5.08" x2="139.7" y2="5.08" width="0.1524" layer="91"/>
 <wire x1="139.7" y1="5.08" x2="91.44" y2="5.08" width="0.1524" layer="91"/>
-<wire x1="91.44" y1="5.08" x2="78.74" y2="5.08" width="0.1524" layer="91"/>
-<wire x1="78.74" y1="5.08" x2="73.66" y2="5.08" width="0.1524" layer="91"/>
+<wire x1="91.44" y1="5.08" x2="73.66" y2="5.08" width="0.1524" layer="91"/>
 <wire x1="203.2" y1="22.86" x2="203.2" y2="5.08" width="0.1524" layer="91"/>
 <junction x="203.2" y="5.08"/>
 <wire x1="241.3" y1="55.88" x2="241.3" y2="104.14" width="0.1524" layer="91"/>
@@ -18714,9 +18718,6 @@ Various common sizes : AA, AAA, 20mm coin cell and 12mm coin cell.&lt;br&gt;
 <junction x="233.68" y="55.88"/>
 <pinref part="ISP1" gate="G$1" pin="GND"/>
 <wire x1="91.44" y1="-2.54" x2="91.44" y2="5.08" width="0.1524" layer="91"/>
-<pinref part="ISP1" gate="G$1" pin="VCC"/>
-<wire x1="91.44" y1="-7.62" x2="78.74" y2="-7.62" width="0.1524" layer="91"/>
-<wire x1="78.74" y1="-7.62" x2="78.74" y2="5.08" width="0.1524" layer="91"/>
 <pinref part="R4" gate="1" pin="1"/>
 <wire x1="91.44" y1="144.78" x2="91.44" y2="142.24" width="0.1524" layer="91"/>
 <pinref part="U$2" gate="G$1" pin="1"/>
@@ -18739,6 +18740,7 @@ Various common sizes : AA, AAA, 20mm coin cell and 12mm coin cell.&lt;br&gt;
 <junction x="68.58" y="5.08"/>
 <pinref part="C8" gate="G$1" pin="-"/>
 <junction x="154.94" y="5.08"/>
+<junction x="91.44" y="5.08"/>
 </segment>
 </net>
 <net name="N$6" class="0">

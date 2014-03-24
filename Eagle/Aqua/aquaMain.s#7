@@ -10944,6 +10944,9 @@ Based on the following sources:
 <text x="40.64" y="172.72" size="1.778" layer="91" rot="R180">R7 depends on LCD model
 (current limiter for backlight)</text>
 <text x="45.72" y="154.94" size="1.778" layer="91" rot="R180">pull-up</text>
+<text x="27.94" y="7.62" size="1.778" layer="91">GND</text>
+<text x="53.34" y="17.78" size="1.778" layer="91">VSS</text>
+<text x="76.2" y="15.24" size="1.778" layer="91">VDD</text>
 </plain>
 <instances>
 <instance part="IC1" gate="G$1" x="99.06" y="58.42"/>
@@ -11558,7 +11561,6 @@ Based on the following sources:
 <wire x1="25.4" y1="5.08" x2="25.4" y2="60.96" width="0.1524" layer="91"/>
 <junction x="25.4" y="60.96"/>
 <junction x="45.72" y="5.08"/>
-<label x="27.94" y="7.62" size="1.778" layer="95"/>
 </segment>
 </net>
 </nets>
