@@ -1,26 +1,38 @@
-// include the library code:
+// include the library code
 #include <EEPROM.h>
 #include <Wire.h>   //i2c interface
 #include <LiquidCrystal_I2C.h> //lcd through pcf8574ap
 #include <OneWire.h> //onewire for temp
 #include <DallasTemperature.h> //temp sensor
 #include "RTClib.h"
+#include <SPI.h>
+#include <SdFat.h>
+#include <avr/io.h>
+#include <avr/interrupt.h>
 
-LiquidCrystal_I2C lcd(0x38,16,2);  // set the LCD address to 0x38 for a 16 chars and 2 line display
+
+SdFat sd;
+SdFile sdLog;
+char dateb[20];
+char sValb[4];
+
+LiquidCrystal_I2C lcd(0x38, 4, 5, 6, 0, 1, 2, 3, 7, POSITIVE); // addr, EN, RW, RS, D4, D5, D6, D7, BacklightPin, POLARITY
 
 RTC_DS1307 rtc;
 
-int sensorPin = A0;
-int sensorValue = 0;
-float outputA0 = 0;
-float currPh=0;
-volatile byte flag = 0;//false;
+OneWire oneWire(5); // Setup a oneWire instance to communicate with any OneWire devices on Pin5
+DallasTemperature sensors(&oneWire); // Pass our oneWire reference to Dallas Temperature. 
+DeviceAddress T1 = { 0x28, 0x22, 0xAA, 0x68, 0x05, 0x00, 0x00, 0xF1 }; // Assign the addresses of your 1-Wire temp sensors.
+
+volatile byte flag = 0;
+volatile byte seconds = 0;
 byte flag_last=0;
-
-
-
 volatile boolean light = true;
 boolean light_last = true;
+boolean logging = true;
+
+
+int sensorPin = A0;
 
 /*unsigned int phL = 120;
 byte phLlow = phL & 0xff;
@@ -28,53 +40,67 @@ byte phLhigh = (phL >> 8);
 unsigned int phH = 600;
 byte phHlow = phH & 0xff;
 byte phHhigh = (phH >> 8);*/
+/*
 int phL=EEPROM.read(0)*256+EEPROM.read(1);
 int phLv=EEPROM.read(4)*256+EEPROM.read(5);
 int phH=EEPROM.read(2)*256+EEPROM.read(3);
 int phHv=EEPROM.read(6)*256+EEPROM.read(7);
+*/
+//temporary until EEPROM fixed
+int phL=120; int phLv=400; int phH=600; int phHv=700;
 
-// Setup a oneWire instance to communicate with any OneWire devices on Pin8
-OneWire oneWire(8);
 
-// Pass our oneWire reference to Dallas Temperature. 
-DallasTemperature sensors(&oneWire);
-
-// Assign the addresses of your 1-Wire temp sensors.
-DeviceAddress T1 = { 0x28, 0x22, 0xAA, 0x68, 0x05, 0x00, 0x00, 0xF1 };
 
 void setup() {
-  
-  Serial.begin(9600);
-  // set up the LCD's number of columns and rows: 
-  lcd.init();  // initialize the lcd 
-  lcd.noBacklight(); //inverse because npn used
-  
-  attachInterrupt(0, swap, RISING);
-  //attachInterrupt(1, togglebl, RISING);
-  
   Wire.begin();
   rtc.begin();
-
-  //if (! rtc.isrunning()) {
-    Serial.println("RTC is NOT running!");
-    // following line sets the RTC to the date & time this sketch was compiled
-    //rtc.adjust(DateTime(__DATE__, __TIME__));
-  //}  
-  
-  // Start up the library
   sensors.begin();
-  // set the resolution to 10 bit (good enough?)
-  sensors.setResolution(T1, 10);
-  
-  //pinMode(2, INPUT);
+  sensors.setResolution(T1, 10);// set the resolution to 10 bit (good enough?)
+  //Serial.begin(9600);
+  lcd.begin(16,2);
+  lcd.setBacklight(BACKLIGHT_ON);
+
+  pinMode(2, INPUT);
   pinMode(3, INPUT);
   pinMode(4, INPUT);
+ 
+  if (! rtc.isrunning()) {
+    //  Serial.println("RTC is NOT running!");
+    //  following line sets the RTC to the date & time this sketch was compiled
+    rtc.adjust(DateTime(__DATE__, __TIME__));
+  }
   
   lcd.clear();
+  
+  // initialize Timer1
+  cli();          // disable global interrupts
+  
+  EICRA |= (1 << ISC01);    // set INT0 to trigger on failing edge
+  EIMSK |= (1 << INT0);     // Turns on INT0
+  
+  TCCR1A = 0;     // set entire TCCR1A register to 0
+  TCCR1B = 0;     // same for TCCR1B
+ 
+  // set compare match register to desired timer count:
+  // 1s@16MHz/1024 = 15624 
+  // 4s@16MHz/1024 = 62496
+  OCR1A = 62496;
+  // turn on CTC mode:
+  TCCR1B |= (1 << WGM12);
+  // Set CS10 and CS12 bits for 1024 prescaler:
+  TCCR1B |= (1 << CS10);
+  TCCR1B |= (1 << CS12);
+  // enable timer compare interrupt:
+  TIMSK1 |= (1 << OCIE1A);
+  // enable global interrupts:
+
+  sei();
+   
+  //attachInterrupt(0, swap, RISING);
 }
 
 void loop() {
-  Serial.println(flag);
+  //Serial.println(flag);
   
   switch (flag) {
     case 0:
@@ -87,9 +113,20 @@ void loop() {
       break;
     case 2:
       showMenu();
+//      swap();
+      break;
+    case 10:
+//      showSD();
+//      logDataShow();
+      if (logging) logSD();
+      flag=0;
+      break;
+    default:
+      flag=0;
       break;
   }
   
+  /* 
   if (flag_last!=flag){
     lcd.clear();
     flag_last=flag;
@@ -97,19 +134,42 @@ void loop() {
   
   if (light_last!=light){
     if (light){
-      lcd.noBacklight(); //inverse because npn used
+      lcd.setBacklight(BACKLIGHT_ON);
     } else {
-      lcd.backlight(); //inverse because npn used
+      lcd.setBacklight(BACKLIGHT_OFF);
     }
   }
   light_last=light;
+  */
+}
+
+ISR(TIMER1_COMPA_vect)
+{
+    seconds++;
+    if (seconds == 15) //every minute i.e. 60s / 4s per interrupt
+    {
+        seconds = 0;
+        flag=10;
+    }
+} 
+
+
+ISR (INT0_vect)
+{
+  flag++;
+  flag=flag % 3;
+  //lcd.clear();
+    /* interrupt code here */
 }
 
 void swap()
 {
-  flag=flag++;
+  flag++;
   flag=flag % 3;
+  lcd.clear();
+  delay(150);
 }
+
 void togglebl()
 {
   light=!light;
@@ -118,37 +178,16 @@ void togglebl()
 void showTimeScreen()
 {
   DateTime now = rtc.now();
-  // set the cursor to column 0, line 1
-  // (note: line 1 is the second row, since counting begins with 0):
-  lcd.setCursor(1, 0);
-  //    lcd.print(now.year(), DEC);
-  //    lcd.print('/');
-  //    if (now.day() <10) {lcd.print('0');}
-  lcd.print(now.day(), DEC);
-  lcd.print('/');
-  //    if (now.month() <10) {lcd.print('0');}
-  lcd.print(now.month(), DEC);
-  lcd.setCursor(7, 0);
-  if (now.hour() <10) {lcd.print('0');}
-  lcd.print(now.hour(), DEC);
-  lcd.print(':');
-  if (now.minute() <10) {lcd.print('0');}
-  lcd.print(now.minute(), DEC);
-  lcd.print(':');
-  if (now.second() <10) {lcd.print('0');}
-  lcd.print(now.second(), DEC);
-  
+  sprintf(dateb,  "%02d/%02d   %02d:%02d:%02d", now.day(), now.month(), now.hour(), now.minute(), now.second() );
+  lcd.setCursor(0, 0);
+  lcd.print(dateb);
   lcd.setCursor(1, 1);
-  sensorValue = analogRead(sensorPin);
-  currPh=0.01*mapfloat(sensorValue,phL,phH,phLv,phHv);
   sensors.requestTemperatures();
-  float tempC = sensors.getTempC(T1);
-  lcd.print(tempC,1);
+  lcd.print(sensors.getTempC(T1),1);
   lcd.print((char)223);
   lcd.print("C  ");
-  lcd.print(currPh,2);
+  lcd.print(0.01*mapfloat(analogRead(sensorPin),phL,phH,phLv,phHv),2);
   lcd.print("Ph");
-  //delay(1000);
 }
 
 void showReadingsScreen()
@@ -167,20 +206,10 @@ void showReadingsScreen()
       lcd.print("C");
     }
     lcd.setCursor(1, 1);
-    // print the number of seconds since reset:
-    //lcd.print(millis()/1000);
-    //lcd.setCursor(3, 1);
     lcd.print("Ph  :  ");
-  //  lcd.setCursor(6, 1);
-    // print the number of seconds since reset:
-    //lcd.print(sensorValue);
-    sensorValue = analogRead(sensorPin);
-    outputA0=mapfloat(sensorValue,0,1023,0,490)/100;
-    //outputA0=((float)sensorValue/1024)*5;
-    lcd.print(outputA0,2);
+    lcd.print(mapfloat(analogRead(sensorPin),0,1023,0,500)/100,2);
     lcd.print(" V");
     delay(500);
-    //lcd.clear();
   }
   
 void showMenu()
@@ -190,13 +219,64 @@ void showMenu()
   
 }
 
+
+String logData() {
+  String dlog;
+  DateTime now = rtc.now();
+  float sVal = 0.01*mapfloat(analogRead(sensorPin),phL,phH,phLv,phHv);
+  sensors.requestTemperatures();
+  sprintf(dateb,  "%d,%d,%d,%d,%d,%d,", now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second() );
+  dlog=String(dateb);
+  dtostrf(sVal,1,2,sValb);
+  dlog=dlog + String(sValb);
+  dlog = dlog + ",";
+  dtostrf(sensors.getTempC(T1),1,2,sValb);
+  dlog=dlog + String(sValb);
+  return String(dlog); 
+}
+
+void logSD() {
+  lcd.clear();
+  lcd.setCursor(0, 0);  
+  lcd.print("INIT SD");
+  //delay(500);
+  // Initialize SdFat
+  if (!sd.begin(10, SPI_QUARTER_SPEED)) {
+    lcd.print(" - error");
+    delay(5000);
+  } else {
+    // if initialized correctly open the file for write at end like the Native SD library
+    if (!sdLog.open("datalog.txt", O_RDWR | O_CREAT | O_AT_END)) {
+      lcd.setCursor(0, 0);
+      lcd.print("SD write error  ");
+      delay(5000);
+    } else {
+      // if the file opened okay, write to it:
+      lcd.setCursor(0, 1);
+      lcd.print("Writing...");
+      sdLog.println(logData());
+      //delay(1000);
+      // close the file:
+      sdLog.close();
+      lcd.clear();
+      lcd.print("SD Writing done");
+      delay(2000);
+    }
+  }
+}
+
+float mapfloat(long x, long in_min, long in_max, int out_min, long out_max)
+{
+  return (float)(x - in_min) * (out_max - out_min) / (float)(in_max - in_min) + out_min;
+}
+
 void calibrate()
 {
   int phcL=400;
   int phcH=700;
   int reading = 0;
   int i;
-  detachInterrupt(0);
+  //detachInterrupt(0);
   boolean brk = true;
   boolean bu = false;
   boolean bd = false;
@@ -301,60 +381,54 @@ void calibrate()
     lcd.print(20-i); 
   }
   phcHv=round(reading/20);  
-
-
   //check for correctness of data
   //TODO
-
-
   reading=1000; //reuse
 
   brk=true;
- while (brk){
-    
-// Show Results  
-  lcd.setCursor(0, 0);
-  lcd.print("Old: ");
-  lcd.print((float)(EEPROM.read(0)*256+EEPROM.read(1))/100);
-  lcd.print("Ph ");
-  lcd.print(EEPROM.read(4)*256+EEPROM.read(5));
-  lcd.setCursor(0, 1);
-  lcd.print("New: ");
-  lcd.print((float)phcL/100);
-  lcd.print("Ph ");
-  lcd.print(phcLv);
-  delay(5000);
-  lcd.setCursor(0, 0);
-  lcd.print("Old: ");
-  lcd.print((float)(EEPROM.read(2)*256+EEPROM.read(3))/100);
-  lcd.print("Ph ");
-  lcd.print(EEPROM.read(6)*256+EEPROM.read(7));
-  lcd.setCursor(0, 1);
-  lcd.print("New: ");
-  lcd.print((float)phcH/100);
-  lcd.print("Ph ");
-  lcd.print(phcHv);
-  delay(5000);
+ while (brk){   
+  // Show Results  
+    lcd.setCursor(0, 0);
+    lcd.print("Old: ");
+    lcd.print((float)(EEPROM.read(0)*256+EEPROM.read(1))/100);
+    lcd.print("Ph ");
+    lcd.print(EEPROM.read(4)*256+EEPROM.read(5));
+    lcd.setCursor(0, 1);
+    lcd.print("New: ");
+    lcd.print((float)phcL/100);
+    lcd.print("Ph ");
+    lcd.print(phcLv);
+    delay(5000);
+    lcd.setCursor(0, 0);
+    lcd.print("Old: ");
+    lcd.print((float)(EEPROM.read(2)*256+EEPROM.read(3))/100);
+    lcd.print("Ph ");
+    lcd.print(EEPROM.read(6)*256+EEPROM.read(7));
+    lcd.setCursor(0, 1);
+    lcd.print("New: ");
+    lcd.print((float)phcH/100);
+    lcd.print("Ph ");
+    lcd.print(phcHv);
+    delay(5000);
 
-  i=1;
-  prevMillis = millis();
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Show again?");
-  brk=false;
-  while ( (i<6) ^ (brk) ){
-    curMillis = millis();
-    if (curMillis-prevMillis>reading){
-      prevMillis=curMillis;
-      lcd.setCursor(0, 1);
-      lcd.print(5-i);
-      lcd.print("s left (NO) ");      
-      i++;
-    }
-    brk=digitalRead(2);
-  } 
+    i=1;
+    prevMillis = millis();
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Show again?");
+    brk=false;
+    while ( (i<6) ^ (brk) ){
+      curMillis = millis();
+      if (curMillis-prevMillis>reading){
+        prevMillis=curMillis;
+        lcd.setCursor(0, 1);
+        lcd.print(5-i);
+        lcd.print("s left (NO) ");      
+        i++;
+      }
+      brk=digitalRead(2);
+    } 
  }
- 
  delay(1000); 
   
 // Saving  
@@ -397,7 +471,7 @@ void calibrate()
       lcd.setCursor(0, 1);
       lcd.print("Discarded   ");
   }
-  attachInterrupt(0, swap, RISING);
+  //attachInterrupt(0, swap, RISING);
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Done        ");
@@ -412,7 +486,7 @@ void calibrate()
 
 void saveOnEEPROM()
 {
-  detachInterrupt(0);
+  //detachInterrupt(0);
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Save to EEPROM?");
@@ -472,14 +546,82 @@ void saveOnEEPROM()
     lcd.print("cancelled"); 
     delay(2000); 
   }
-  attachInterrupt(0, swap, RISING);
+  //attachInterrupt(0, swap, RISING);
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Done        ");
   delay(2000);
 }
 
-float mapfloat(long x, long in_min, long in_max, int out_min, long out_max)
-{
-  return (float)(x - in_min) * (out_max - out_min) / (float)(in_max - in_min) + out_min;
-}
+/*void logDataShow() { //debug only
+  lcd.clear();
+  delay(1000);
+  lcd.print(logData());
+  for (int positionCounter = 0; positionCounter < 16; positionCounter++) {
+    lcd.scrollDisplayLeft(); 
+    delay(150);
+  }
+  delay(10000);
+}*/
+
+/*
+void showSD() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  delay(1000);
+  lcd.print("INIT SD");
+  // Initialize SdFat or print a detailed error message and halt
+  // Use half speed like the native library.
+  // change to SPI_FULL_SPEED for more performance.
+  if (!sd.begin(10, SPI_QUARTER_SPEED)) sd.initErrorHalt();
+
+  // open the file for write at end like the Native SD library
+  if (!sdLog.open("test.txt", O_RDWR | O_CREAT | O_AT_END)) {
+    lcd.print("write error");
+    delay(10000);
+    return;
+  }
+  // if the file opened okay, write to it:
+  lcd.setCursor(0, 1);
+  lcd.print("Writing...");
+  sdLog.println("testing new");
+  delay(1000);
+  // close the file:
+  sdLog.close();
+  lcd.print("done.");
+  delay(3000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  delay(1000);
+  lcd.print("Reading");
+  // re-open the file for reading:
+  if (!sdLog.open("test.txt", O_READ)) {
+    lcd.print("- open error");
+  }
+  delay(2000);
+  lcd.setCursor(0,0);
+  lcd.print("test.txt:      ");
+  int i=0;
+  // read from the file until there's nothing else in it:
+  char data;
+  char output[15];
+  while ((data = sdLog.read()) >= 0) {
+    if( data =='\n' || i>16) {
+       lcd.setCursor(0,1);
+       lcd.print(output);
+       lcd.setCursor(i-1,1); lcd.print("                ");
+       delay(1000);
+       if (i>15) {output[0]=data; lcd.setCursor(i,1); lcd.print("                "); i=1;} 
+       else {lcd.setCursor(i-1,1); lcd.print("                "); i=0;}
+    } else {
+       output[i]=data;
+       i++;
+    }
+  }
+  // close the file:
+  sdLog.close();
+  lcd.setCursor(0,0);
+  lcd.print("FINISHED      "); 
+
+  delay(2000); 
+}*/
