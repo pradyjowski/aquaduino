@@ -13,8 +13,9 @@
 
 SdFat sd;
 SdFile sdLog;
-char dateb[20];
-char sValb[4];
+char data[40];
+char csPh[6];
+char csT[6];
 
 LiquidCrystal_I2C lcd(0x38, 4, 5, 6, 0, 1, 2, 3, 7, POSITIVE); // addr, EN, RW, RS, D4, D5, D6, D7, BacklightPin, POLARITY
 
@@ -55,8 +56,8 @@ void setup() {
   Wire.begin();
   rtc.begin();
   sensors.begin();
-  sensors.setResolution(T1, 10);// set the resolution to 10 bit (good enough?)
-  //Serial.begin(9600);
+  sensors.setResolution(T1, 12);// set the resolution to 10 bit (good enough?)
+  Serial.begin(19200);
   lcd.begin(16,2);
   lcd.setBacklight(BACKLIGHT_ON);
 
@@ -97,6 +98,28 @@ void setup() {
   sei();
    
   //attachInterrupt(0, swap, RISING);
+  lcd.clear();
+  lcd.print("INIT SD");
+  delay(500);
+  // Initialize SdFat
+  if (!sd.begin(10, SPI_QUARTER_SPEED)) {
+    lcd.print(" - error");
+    lcd.setCursor(1,0);
+    sd.initErrorPrint();
+    delay(5000);
+  } else {
+    // if initialized correctly open the file for write at end like the Native SD library
+    if (!sdLog.open("datalog.txt", O_RDWR | O_CREAT | O_AT_END)) {
+      lcd.setCursor(0, 0);
+      lcd.print("SD write error  ");
+      lcd.setCursor(1,0);
+      sd.initErrorPrint();
+      delay(5000);
+    } else {
+      lcd.print(" OK");
+      delay(2000);
+    }
+  }
 }
 
 void loop() {
@@ -125,6 +148,7 @@ void loop() {
       flag=0;
       break;
   }
+  //Serial.print("EndLoop");
   
   /* 
   if (flag_last!=flag){
@@ -146,7 +170,7 @@ void loop() {
 ISR(TIMER1_COMPA_vect)
 {
     seconds++;
-    if (seconds == 15) //every minute i.e. 60s / 4s per interrupt
+    if (seconds == 5) //15 for every minute i.e. 60s / 4s per interrupt
     {
         seconds = 0;
         flag=10;
@@ -178,9 +202,9 @@ void togglebl()
 void showTimeScreen()
 {
   DateTime now = rtc.now();
-  sprintf(dateb,  "%02d/%02d   %02d:%02d:%02d", now.day(), now.month(), now.hour(), now.minute(), now.second() );
+  sprintf(data,  "%02d/%02d   %02d:%02d:%02d", now.day(), now.month(), now.hour(), now.minute(), now.second() );
   lcd.setCursor(0, 0);
-  lcd.print(dateb);
+  lcd.print(data);
   lcd.setCursor(1, 1);
   sensors.requestTemperatures();
   lcd.print(sensors.getTempC(T1),1);
@@ -209,7 +233,8 @@ void showReadingsScreen()
     lcd.print("Ph  :  ");
     lcd.print(mapfloat(analogRead(sensorPin),0,1023,0,500)/100,2);
     lcd.print(" V");
-    delay(500);
+    delay(1000);
+    
   }
   
 void showMenu()
@@ -220,49 +245,43 @@ void showMenu()
 }
 
 
-String logData() {
-  String dlog;
+void logData() {
+  
   DateTime now = rtc.now();
-  float sVal = 0.01*mapfloat(analogRead(sensorPin),phL,phH,phLv,phHv);
   sensors.requestTemperatures();
-  sprintf(dateb,  "%d,%d,%d,%d,%d,%d,", now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second() );
-  dlog=String(dateb);
-  dtostrf(sVal,1,2,sValb);
-  dlog=dlog + String(sValb);
-  dlog = dlog + ",";
-  dtostrf(sensors.getTempC(T1),1,2,sValb);
-  dlog=dlog + String(sValb);
-  return String(dlog); 
+  float reading = 0.01*mapfloat(analogRead(sensorPin),phL,phH,phLv,phHv);
+  Serial.println(reading);
+  delay(700);
+  dtostrf(reading,1,2,csPh);
+  Serial.println(csPh);
+  dtostrf(sensors.getTempC(T1),1,2,csT);  
+  sprintf(data,  "%d,%d,%d,%d,%d,%d,%s,%s", now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second(), csT, csPh );
+  //String dlog = String(dateb) + String(sValb);
+  //dlog = dlog + String(sValb);
+  //dlog = dlog + ",";  
+  //dlog= dlog + String(sValb);
+  //return String(dlog); 
 }
 
 void logSD() {
   lcd.clear();
   lcd.setCursor(0, 0);  
-  lcd.print("INIT SD");
-  //delay(500);
-  // Initialize SdFat
-  if (!sd.begin(10, SPI_QUARTER_SPEED)) {
-    lcd.print(" - error");
-    delay(5000);
+  // if the file opened okay, write to it:
+  lcd.print("SD Writing...");
+  logData();
+  Serial.println(data);
+  sdLog.println(data);  
+//  delay(1000);
+//  close the file:
+//  sdLog.close();
+  lcd.clear();
+  if (!sdLog.sync()) {
+    lcd.print("SD Writing failed");
+    sd.errorPrint();
   } else {
-    // if initialized correctly open the file for write at end like the Native SD library
-    if (!sdLog.open("datalog.txt", O_RDWR | O_CREAT | O_AT_END)) {
-      lcd.setCursor(0, 0);
-      lcd.print("SD write error  ");
-      delay(5000);
-    } else {
-      // if the file opened okay, write to it:
-      lcd.setCursor(0, 1);
-      lcd.print("Writing...");
-      sdLog.println(logData());
-      //delay(1000);
-      // close the file:
-      sdLog.close();
-      lcd.clear();
-      lcd.print("SD Writing done");
-      delay(2000);
-    }
-  }
+    lcd.print("SD Writing done");
+  };
+  delay(1000);
 }
 
 float mapfloat(long x, long in_min, long in_max, int out_min, long out_max)

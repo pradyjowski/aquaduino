@@ -19138,8 +19138,10 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <wire x1="241.3" y1="5.08" x2="203.2" y2="5.08" width="0.1524" layer="91"/>
 <junction x="73.66" y="5.08"/>
 <junction x="73.66" y="55.88"/>
-<wire x1="203.2" y1="5.08" x2="177.8" y2="5.08" width="0.1524" layer="91"/>
-<wire x1="177.8" y1="5.08" x2="154.94" y2="5.08" width="0.1524" layer="91"/>
+<wire x1="203.2" y1="5.08" x2="187.96" y2="5.08" width="0.1524" layer="91"/>
+<wire x1="187.96" y1="5.08" x2="177.8" y2="5.08" width="0.1524" layer="91"/>
+<wire x1="177.8" y1="5.08" x2="167.64" y2="5.08" width="0.1524" layer="91"/>
+<wire x1="167.64" y1="5.08" x2="154.94" y2="5.08" width="0.1524" layer="91"/>
 <wire x1="154.94" y1="5.08" x2="149.86" y2="5.08" width="0.1524" layer="91"/>
 <wire x1="149.86" y1="5.08" x2="139.7" y2="5.08" width="0.1524" layer="91"/>
 <wire x1="139.7" y1="5.08" x2="91.44" y2="5.08" width="0.1524" layer="91"/>
@@ -19246,6 +19248,18 @@ Standard schematic elements and footprints for 5mm, 3mm, 1206, and 0603 sized LE
 <junction x="38.1" y="43.18"/>
 <pinref part="T1" gate="G$1" pin="E"/>
 <wire x1="25.4" y1="139.7" x2="25.4" y2="114.3" width="0.1524" layer="91"/>
+<pinref part="IC3" gate="A" pin="OE"/>
+<wire x1="177.8" y1="22.86" x2="187.96" y2="22.86" width="0.1524" layer="91"/>
+<wire x1="187.96" y1="22.86" x2="187.96" y2="5.08" width="0.1524" layer="91"/>
+<pinref part="IC3" gate="B" pin="OE"/>
+<wire x1="180.34" y1="43.18" x2="187.96" y2="43.18" width="0.1524" layer="91"/>
+<wire x1="187.96" y1="43.18" x2="187.96" y2="22.86" width="0.1524" layer="91"/>
+<pinref part="IC3" gate="C" pin="OE"/>
+<wire x1="162.56" y1="35.56" x2="167.64" y2="35.56" width="0.1524" layer="91"/>
+<wire x1="167.64" y1="35.56" x2="167.64" y2="5.08" width="0.1524" layer="91"/>
+<junction x="167.64" y="5.08"/>
+<junction x="187.96" y="22.86"/>
+<junction x="187.96" y="5.08"/>
 </segment>
 </net>
 <net name="N$6" class="0">
