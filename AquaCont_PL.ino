@@ -30,14 +30,14 @@ DeviceAddress T1 = { 0x28, 0x22, 0xAA, 0x68, 0x05, 0x00, 0x00, 0xF1 }; // Assign
 
 // Menu options saved in program memory
 static char buffer[MAXSTRLEN+1];
-const char mi0[] PROGMEM = "   Back light";
-const char mi1[] PROGMEM = "   SD logging";
-const char mi2[] PROGMEM = "  Log frequency";
-const char mi3[] PROGMEM = " Ph Calibration";
-const char mi4[] PROGMEM = "Save Calibration";
-const char mi5[] PROGMEM = "      Time";
-const char mi6[] PROGMEM = "      Date";
-const char mi7[] PROGMEM = "      EXIT";
+const char mi0[] PROGMEM = " Podswietlenie";
+const char mi1[] PROGMEM = "  Logowanie SD";
+const char mi2[] PROGMEM = "SD Czestotliwosc";
+const char mi3[] PROGMEM = " Ph Kalibracja";
+const char mi4[] PROGMEM = "Zapis Kalibracji";
+const char mi5[] PROGMEM = "   Zmien Czas";
+const char mi6[] PROGMEM = "   Zmien Date";
+const char mi7[] PROGMEM = "     Wyjdz";
 
 PGM_P const mi[] PROGMEM = 
 {
@@ -122,11 +122,11 @@ void setup() {
   lastLog=now.unixtime();
   
   // initialize SD card
-  lcd.print(F("INIT SD"));
+  lcd.print(F("Start SD"));
   delay(500);
   // Initialize SdFat
   if (!sd.begin(10, SPI_QUARTER_SPEED)) {
-    lcd.print(F(" - error"));
+    lcd.print(F(" - blad"));
     lcd.setCursor(1,0);
     sd.initErrorPrint();
     SDerror=true;
@@ -138,7 +138,7 @@ void setup() {
     // if initialized correctly open the file for write at end like the Native SD library
     if (!sdLog.open(fname, O_RDWR | O_CREAT | O_AT_END)) {
       lcd.setCursor(0, 0);
-      lcd.print(F("SD file error"));
+      lcd.print(F("SD blad pliku"));
       lcd.setCursor(1,0); SDerror=true;
       sd.initErrorPrint();
       delay(5000);
@@ -263,19 +263,19 @@ void logData() {
 void saveSD() {
   lcd.clear();
   lcd.setCursor(0, 0);  
-  lcd.print(F("SD Writing..."));
+  lcd.print(F("SD Zapis..."));
   lcd.setCursor(3,1); // show saved values, why not
   lcd.print(csT); lcd.print(F(" ")); lcd.print(csPh);
   delay(1000);
   sdLog.println(data);  // SAVE
-  lcd.setCursor(10,0);
+  lcd.setCursor(8,0);
   //command to sync the SD card
   if (!sdLog.sync()) { //if failed
     
-    lcd.print(F(" failed"));
+    lcd.print(F(" blad"));
     sd.errorPrint(); SDerror=true;
   } else { // success
-    lcd.print(F(" done"));
+    lcd.print(F(" OK"));
   };
   delay(1000);
   lcd.clear();
@@ -308,7 +308,7 @@ void showArrows() {
 
 // shows Yes/No options at the edges of the screen
 void showYESNO(){
-  lcd.setCursor(0,1); lcd.print(F("YES           NO"));
+  lcd.setCursor(0,1); lcd.print(F("TAK          NIE"));
 }
 
 // shows current menu option (title) from progmem
@@ -331,7 +331,7 @@ void showMenu() {
   lcd.setCursor(5, 0);
   lcd.print(F("MENU"));
   showArrows();
-  lcd.setCursor(5,1); lcd.print(F("Enter"));
+  lcd.setCursor(5,1); lcd.print(F("Wejdz"));
   delay(BTIME);
   byte a=readButton();
   if (a == 1 || a == 2) { // if Up or Down pressed - ented menu
@@ -378,9 +378,9 @@ void showMenu() {
          
           case 2: //SD SYNC FREQUENCY MENU
           lcd.clear();
-          lcd.print(F("Set log freqency"));
+          lcd.print(F("Ustaw czest. SD"));
           showArrows();
-          lcd.setCursor(3,1); 
+          lcd.setCursor(5,1); 
           if (logSDtime<10) lcd.print("0");
           lcd.print(logSDtime); lcd.print(F(" min")); 
           a=0; delay(1000);
@@ -389,7 +389,7 @@ void showMenu() {
             if (a==1) logSDtime++;
             if (a==2) logSDtime--;
             logSDtime = logSDtime % 128; //max 127mins between SD sync
-            lcd.setCursor(3,1);
+            lcd.setCursor(5,1);
             if (logSDtime < 10) lcd.print("0");
             lcd.print(logSDtime);
             a=readButton();
@@ -400,7 +400,7 @@ void showMenu() {
           
           case 3: // PH CALIBRATION
           lcd.clear();
-          lcd.print(F("Set LOW Ph:"));
+          lcd.print(F("Niski Ph"));
           showArrows();
           showFloat(phLv);
           a=0; delay(1000);
@@ -413,7 +413,7 @@ void showMenu() {
           } while (a!=4) ; // OK to next
           
           lcd.clear();
-          lcd.print(F("Set LOW Ph value:"));
+          lcd.print(F("Niski Ph Odczyt"));
           showArrows();
           lcd.setCursor(6,1); lcd.print(phL);
           a=0; delay(1000);
@@ -427,7 +427,7 @@ void showMenu() {
           } while (a!=4); // OK to next         
           
           lcd.clear();
-          lcd.print(F("Set HIGH Ph"));
+          lcd.print(F("Wysoki Ph"));
           showArrows();
           showFloat(phHv);
           a=0; delay(1000);
@@ -440,7 +440,7 @@ void showMenu() {
           } while (a!=4) ;
           
           lcd.clear();
-          lcd.print(F("Set High Ph value"));
+          lcd.print(F("Wysoki Ph Odczyt"));
           showArrows();
           lcd.setCursor(6,1); lcd.print(phH);
           a=0; delay(1000);
@@ -459,7 +459,7 @@ void showMenu() {
           case 4: //SAVE ON EEPROM 
           showYESNO();
           delay(3000); a=0;
-          lcd.setCursor(5,1); lcd.print(F("Choose"));
+          lcd.setCursor(5,1); lcd.print(F("Wybierz"));
           while (a == 0) {delay(BTIME); a=readButton();}
           if (a == 1) {
             a=0; b=0;
@@ -475,9 +475,9 @@ void showMenu() {
             // higher PH reading
             a = phHv & 0xff; b = (phHv >> BYTE);
             EEPROM.write(6,b); EEPROM.write(7,a);
-            lcd.setCursor(0,1); lcd.print(F("     SAVED    "));  
+            lcd.setCursor(0,1); lcd.print(F("    Zapisane    "));  
           }
-          else if (a == 2) lcd.setCursor(0,1); lcd.print(F("   NOT SAVED    "));     
+          else if (a == 2) lcd.setCursor(0,1); lcd.print(F("  Nie Zapisane  "));     
           delay(2000);
           menuLine(menuPos);
           break;
@@ -524,20 +524,20 @@ void showMenu() {
             if (flicker) sprintf(temp,  "%02d:%02d:  ", b,c );
             else sprintf(temp,  "%02d:%02d:%02d", b,c,d );
             flicker=!flicker;
+            sprintf(temp,  "%02d:%02d:%02d", b,c,d );
             lcd.setCursor(4, 1); lcd.print(temp);
             a=readButton();
           } while (a!=4);
-          sprintf(temp,  "%02d:%02d:%02d", b,c,d );
-          lcd.setCursor(4, 0); lcd.print(temp);
           showYESNO();
+          lcd.setCursor(4, 0); lcd.print(temp);
           lcd.setCursor(5,1);
-          lcd.print(F("Save?"));
+          lcd.print(F("Zapis?"));
           delay(500); a=0;
           while (a == 0 || a == 4) {delay(BTIME); a=readButton();}
           if (a == 1) { SDlogging = false; now = rtc.now();
             rtc.adjust(DateTime(now.year(),now.month(),now.day(), (uint8_t) b, (uint8_t) c, (uint8_t) d));
-            lcd.setCursor(0,1); lcd.print(F("     SAVED    "));
-          } else lcd.setCursor(0,1); lcd.print(F("   NOT SAVED    "));
+            lcd.setCursor(0,1); lcd.print(F("    Zapisane    "));
+          } else lcd.setCursor(0,1); lcd.print(F("  Nie Zapisane  "));
           delay(2000);
           menuLine(menuPos);
           break;
@@ -556,12 +556,12 @@ void showMenu() {
             delay(200); 
             if (a==1) b++;
             if (a==2) b--;
-            b=b % 32;
+            b = b % 32;
             if (flicker) sprintf(temp,  "  /%02d/%02d", c,d );
             else sprintf(temp,  "%02d/%02d/%02d", b,c,d );
             flicker=!flicker;
             lcd.setCursor(4, 1); lcd.print(temp);
-            a=readButton();          
+            a=readButton();
           } while (a!=4);
           delay(1000);
           do { //MONTHS
@@ -592,13 +592,13 @@ void showMenu() {
           sprintf(temp,  "%02d/%02d/%02d", b,c,d );
           lcd.setCursor(4, 0); lcd.print(temp);
           lcd.setCursor(5,1);
-          lcd.print(F("Save?"));
+          lcd.print(F("Zapis?"));
           delay(500); a=0;
           while (a == 0 || a == 4) {delay(BTIME); a=readButton();}
           if (a == 1) { SDlogging = false; now = rtc.now();
             rtc.adjust(DateTime((uint8_t) d+2000, (uint8_t) c, (uint8_t) b, now.hour(),now.minute(),now.second()));
-            lcd.setCursor(0,1); lcd.print(F("     SAVED    "));
-          } else lcd.setCursor(0,1); lcd.print(F("   NOT SAVED    "));
+            lcd.setCursor(0,1); lcd.print(F("    Zapisane    "));
+          } else lcd.setCursor(0,1); lcd.print(F("  Nie Zapisane  "));
           delay(2000);
           menuLine(menuPos);
           break;
@@ -609,7 +609,7 @@ void showMenu() {
           menuLine(menuPos); 
           showYESNO();
           lcd.setCursor(5,1);
-          lcd.print(F("Exit?"));
+          lcd.print(F("Wyjdz?"));
           delay(1000); a=0;
           while (a == 0 || a == 4) {delay(BTIME); a=readButton();}
           if (a == 1) {inMenu = false; flag=0; clrscr=true;}
